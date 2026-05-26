@@ -1,19 +1,28 @@
 import streamlit as st
-from anthropic import Anthropic
+import anthropic
 
-client = Anthropic(
+client = anthropic.Client(
     api_key=st.secrets["ANTHROPIC_API_KEY"]
 )
 
-st.title("Test")
+st.title("ROLOIA TEST")
 
-if st.button("Probar"):
+pregunta = st.text_input("Pregunta")
+
+if st.button("Enviar"):
 
     try:
 
-        models = client.models.list()
+        response = client.completion(
+            prompt=f"{anthropic.HUMAN_PROMPT} {pregunta}{anthropic.AI_PROMPT}",
+            stop_sequences=[anthropic.HUMAN_PROMPT],
+            model="claude-2.1",
+            max_tokens_to_sample=100,
+        )
 
-        st.write(models)
+        st.success("FUNCIONA 🎉")
+
+        st.write(response["completion"])
 
     except Exception as e:
 
