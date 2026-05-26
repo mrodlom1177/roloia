@@ -1,54 +1,35 @@
 import streamlit as st
 import anthropic
 
-# =====================================================
-# API KEY
-# =====================================================
 api_key = st.secrets["ANTHROPIC_API_KEY"]
 
-st.write("API cargada:", bool(api_key))
-
-# =====================================================
-# CLIENTE
-# =====================================================
 client = anthropic.Anthropic(
     api_key=api_key
 )
 
-# =====================================================
-# APP
-# =====================================================
 st.title("🦅 ROLOIA Test")
 
 pregunta = st.text_input("Escribe algo")
 
 if st.button("Enviar"):
 
-    if pregunta:
+    try:
 
-        with st.spinner("MAYA pensando..."):
+        response = client.messages.create(
+            model="claude-3-7-sonnet-20250219",
+            max_tokens=30,
+            messages=[
+                {
+                    "role": "user",
+                    "content": pregunta
+                }
+            ]
+        )
 
-            try:
+        st.success("FUNCIONA 🎉")
 
-                response = client.messages.create(
-                    model="claude-3-haiku-20240307",
-                    max_tokens=30,
-                    temperature=0,
-                    messages=[
-                        {
-                            "role": "user",
-                            "content": pregunta
-                        }
-                    ],
-                    timeout=20
-                )
+        st.write(response.content[0].text)
 
-                texto = response.content[0].text
+    except Exception as e:
 
-                st.success("FUNCIONA 🎉")
-
-                st.write(texto)
-
-            except Exception as e:
-
-                st.error(str(e))
+        st.error(str(e))
