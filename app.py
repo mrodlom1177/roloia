@@ -5,11 +5,11 @@ api_key = st.secrets["ANTHROPIC_API_KEY"]
 
 st.write("API cargada:", bool(api_key))
 
-client = anthropic.Anthropic(
-    api_key=api_key
-)
-
 try:
+
+    client = anthropic.Anthropic(
+        api_key=api_key
+    )
 
     response = client.messages.create(
         model="claude-3-haiku-20240307",
@@ -23,7 +23,6 @@ try:
     )
 
     st.success("FUNCIONA 🎉")
-
     st.write(response.content[0].text)
 
 except Exception as e:
