@@ -1,34 +1,85 @@
 import streamlit as st
-import requests
+from openai import OpenAI
 
-API_URL = "https://api-inference.huggingface.co/models/google/flan-t5-large"
+# CONFIGURAR API
+client = OpenAI(
+    api_key=st.secrets["OPENAI_API_KEY"]
+)
 
-st.title("🦅 ROLOIA")
+# CONFIGURACIÓN
+st.set_page_config(
+    page_title="ROLOIA",
+    layout="wide"
+)
 
-pregunta = st.text_input("Habla con MAYA")
+# MEMORIA
+if "chat" not in st.session_state:
+    st.session_state.chat = []
 
-def query(payload):
-    response = requests.post(API_URL, json=payload)
-    return response.json()
+# TÍTULO
+st.title("🦅 ROLOIA / MAIA")
+st.subheader("Consultora Estratégica de Fer Rodríguez Lomelí")
 
-if st.button("Enviar"):
+# MOSTRAR CHAT
+for mensaje in st.session_state.chat:
 
-    if pregunta:
+    with st.chat_message(mensaje["role"]):
+        st.markdown(mensaje["content"])
 
-        with st.spinner("MAYA pensando..."):
+# INPUT
+if prompt := st.chat_input("Habla con MAYA..."):
 
-            try:
+    st.session_state.chat.append({
+        "role": "user",
+        "content": prompt
+    })
 
-                output = query({
-                    "inputs": f"Eres MAYA, una asistente inteligente y motivadora. Responde: {pregunta}"
-                })
+    with st.chat_message("user"):
+        st.markdown(prompt)
 
-                respuesta = output[0]["generated_text"]
+    with st.spinner("MAYA pensando..."):
 
-                st.success("FUNCIONA 🎉")
+        try:
 
-                st.write(respuesta)
+            respuesta = client.chat.completions.create(
+                model="gpt-4.1-mini",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": """
+                        Eres MAYA, la consultora estratégica de Fer.
 
-            except Exception as e:
+                        Personalidad:
+                        - Inteligente
+                        - Estratégica
+                        - Elegante
+                        - Directa
+                        - Visionaria
 
-                st.error(str(e))
+                        Tu trabajo:
+                        - ayudar a Fer a crear negocios
+                        - mejorar ideas
+                        - detectar errores
+                        - proponer soluciones
+                        - estructurar planes
+
+                        Siempre llámala Fer.
+                        """
+                    },
+                    *st.session_state.chat
+                ]
+            )
+
+            texto = respuesta.choices[0].message.content
+
+            st.session_state.chat.append({
+                "role": "assistant",
+                "content": texto
+            })
+
+            with st.chat_message("assistant"):
+                st.markdown(texto)
+
+        except Exception as e:
+
+            st.error(str(e))
