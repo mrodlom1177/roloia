@@ -5,14 +5,19 @@ from datetime import datetime
 
 st.set_page_config(page_title="MAIA", layout="wide")
 
-DATA_FILE = "maia_chats.json"
+DATA_FILE = "maia_data.json"
 
 # ----------------------------
 # DATA
 # ----------------------------
 def load_data():
     if not os.path.exists(DATA_FILE):
-        return {"chats": {}}
+        return {
+            "chats": {},
+            "negocios": [],
+            "reflexion": [],
+            "documentos": []
+        }
     with open(DATA_FILE, "r") as f:
         return json.load(f)
 
@@ -23,13 +28,35 @@ def save_data(data):
 data = load_data()
 
 # ----------------------------
-# INIT
+# SESSION
 # ----------------------------
 if "current_chat" not in st.session_state:
     st.session_state.current_chat = None
 
 # ----------------------------
-# CREATE CHAT
+# MAIA CORE (básico por ahora)
+# ----------------------------
+def maia_response(text):
+    if len(text.split()) < 6:
+        return (
+            "Fer, necesito más contexto antes de responder como CEO.\n\n"
+            "Dime:\n"
+            "1. ¿Qué quieres lograr?\n"
+            "2. ¿Es negocio, escuela o personal?"
+        )
+
+    return (
+        "Análisis MAIA (modo CEO):\n\n"
+        "- Estrategia: definir objetivo claro\n"
+        "- Marketing: cómo se comunica\n"
+        "- Finanzas: si genera costo o ingreso\n"
+        "- Operaciones: pasos de ejecución\n"
+        "- Ventas: cómo se convierte en resultado\n\n"
+        "Fer, dime si quieres que lo convierta en plan paso a paso."
+    )
+
+# ----------------------------
+# CHAT MANAGEMENT
 # ----------------------------
 def new_chat():
     chat_id = f"chat_{len(data['chats'])+1}"
@@ -41,53 +68,50 @@ def new_chat():
     st.session_state.current_chat = chat_id
 
 # ----------------------------
-# MAIA CORE (básico ahora)
-# ----------------------------
-def maia_answer(text):
-    return (
-        "Fer, antes de darte una respuesta necesito claridad:\n"
-        "1. ¿Cuál es el objetivo?\n"
-        "2. ¿Esto es negocio, escuela o personal?\n\n"
-        "Cuando me respondas te doy análisis completo como CEO."
-    )
-
-# ----------------------------
-# SIDEBAR (HISTORIAL)
+# SIDEBAR NAV
 # ----------------------------
 st.sidebar.title("MAIA")
+
+page = st.sidebar.selectbox(
+    "Secciones",
+    ["Chat", "Negocios", "Reflexión", "Documentos"]
+)
+
+st.sidebar.markdown("---")
 
 if st.sidebar.button("Nuevo chat"):
     new_chat()
 
-chat_keys = list(data["chats"].keys())
+# lista chats
+for chat_id in data["chats"]:
+    title = data["chats"][chat_id]["title"]
 
-for c in chat_keys:
-    title = data["chats"][c]["title"]
-    if st.sidebar.button(title):
-        st.session_state.current_chat = c
+    if st.sidebar.button(title, key=chat_id):
+        st.session_state.current_chat = chat_id
 
-# si no hay chat seleccionado
-if not st.session_state.current_chat and chat_keys:
-    st.session_state.current_chat = chat_keys[-1]
+if not st.session_state.current_chat and data["chats"]:
+    st.session_state.current_chat = list(data["chats"].keys())[-1]
 
 chat_id = st.session_state.current_chat
 
 # ----------------------------
-# MAIN UI
+# CHAT UI
 # ----------------------------
-st.title("MAIA")
+if page == "Chat":
+    st.title("MAIA - Chat con Fer")
 
-if chat_id:
+    if chat_id is None:
+        st.info("Crea un nuevo chat para empezar.")
+        st.stop()
+
     chat = data["chats"][chat_id]
 
-    # ----------------------------
-    # CHAT VISUAL STYLE (tipo WhatsApp)
-    # ----------------------------
-    for m in chat["messages"]:
+    # mensajes
+    for i, m in enumerate(chat["messages"]):
         if m["role"] == "user":
             st.markdown(
                 f"""
-                <div style='text-align:right; background-color:#DCF8C6; padding:10px; border-radius:10px; margin:5px'>
+                <div style='text-align:right; background:#DCF8C6; padding:10px; border-radius:10px; margin:5px'>
                 Fer: {m['text']}
                 </div>
                 """,
@@ -96,54 +120,125 @@ if chat_id:
         else:
             st.markdown(
                 f"""
-                <div style='text-align:left; background-color:#F1F0F0; padding:10px; border-radius:10px; margin:5px'>
+                <div style='text-align:left; background:#F1F0F0; padding:10px; border-radius:10px; margin:5px'>
                 MAIA: {m['text']}
                 </div>
                 """,
                 unsafe_allow_html=True
             )
 
+    st.markdown("---")
+
+    user_input = st.text_area("Escribe a MAIA", height=120)
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        send = st.button("Enviar")
+
+    with col2:
+        clear = st.button("Limpiar chat")
+
+    if clear:
+        chat["messages"] = []
+        save_data(data)
+        st.rerun()
+
+    if send and user_input:
+        if chat["title"] == "Nuevo chat":
+            chat["title"] = user_input[:30]
+
+        chat["messages"].append({
+            "role": "user",
+            "text": user_input,
+            "time": str(datetime.now())
+        })
+
+        response = maia_response(user_input)
+
+        chat["messages"].append({
+            "role": "maia",
+            "text": response,
+            "time": str(datetime.now())
+        })
+
+        save_data(data)
+        st.rerun()
+
 # ----------------------------
-# INPUT GRANDE (tipo WhatsApp)
+# NEGOCIOS
 # ----------------------------
-st.markdown("---")
-user_input = st.text_area("Escribe a MAIA", height=120)
+elif page == "Negocios":
+    st.title("Negocios")
 
-col1, col2 = st.columns([1,1])
+    idea = st.text_input("Fer, nueva idea de negocio")
+    status = st.selectbox("Estado", ["Idea", "En proceso", "Activo"])
 
-with col1:
-    send = st.button("Enviar")
+    if st.button("Guardar negocio"):
+        if idea:
+            data["negocios"].append({
+                "idea": idea,
+                "status": status,
+                "time": str(datetime.now())
+            })
+            save_data(data)
+            st.rerun()
 
-with col2:
-    clear = st.button("Limpiar chat")
+    st.subheader("Tus negocios")
 
-if clear and chat_id:
-    data["chats"][chat_id]["messages"] = []
-    save_data(data)
-    st.rerun()
+    for n in data["negocios"]:
+        st.write(f"- {n['idea']} | {n['status']}")
 
-if send and user_input and chat_id:
-    chat = data["chats"][chat_id]
+# ----------------------------
+# REFLEXIÓN
+# ----------------------------
+elif page == "Reflexion":
+    st.title("Reflexión")
 
-    # mensaje usuario
-    chat["messages"].append({
-        "role": "user",
-        "text": user_input,
-        "time": str(datetime.now())
-    })
+    tipo = st.selectbox("Tipo", ["Semanal", "Mensual"])
+    texto = st.text_area("Fer, escribe tu reflexión")
 
-    # respuesta MAIA
-    response = maia_answer(user_input)
+    if st.button("Guardar reflexión"):
+        if texto:
+            data["reflexion"].append({
+                "tipo": tipo,
+                "texto": texto,
+                "time": str(datetime.now())
+            })
+            save_data(data)
+            st.rerun()
 
-    chat["messages"].append({
-        "role": "maia",
-        "text": response,
-        "time": str(datetime.now())
-    })
+    st.subheader("Historial")
 
-    # título automático si es primer mensaje
-    if chat["title"] == "Nuevo chat":
-        chat["title"] = user_input[:25]
+    for r in data["reflexion"]:
+        st.write(f"[{r['tipo']}] {r['texto']}")
 
-    save_data(data)
-    st.rerun()
+# ----------------------------
+# DOCUMENTOS
+# ----------------------------
+elif page == "Documentos":
+    st.title("Documentos")
+
+    titulo = st.text_input("Título del documento")
+    contenido = st.text_area("Contenido")
+
+    if st.button("Guardar documento"):
+        if titulo and contenido:
+            filename = f"{titulo.replace(' ', '_')}.txt"
+
+            with open(filename, "w", encoding="utf-8") as f:
+                f.write(contenido)
+
+            data["documentos"].append({
+                "titulo": titulo,
+                "file": filename,
+                "time": str(datetime.now())
+            })
+
+            save_data(data)
+            st.success("Documento guardado")
+
+    st.subheader("Documentos creados")
+
+    for d in data["documentos"]:
+        st.write(f"- {d['titulo']} ({d['file']})")
