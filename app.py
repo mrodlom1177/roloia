@@ -61,15 +61,12 @@ if modo == "☕ Café con Maya (Conóceme)":
         
         with st.spinner("Maya pensando..."):
             try:
-                # Instrucciones del sistema
                 system_prompt = "Eres MAYA, la asistente ejecutiva y mano derecha de Fer Rodríguez Lomeli (siempre llámala 'Fer'). Estás en modo Café. Sé empática, motivadora, sumamente inteligente y conversacional. No estructures negocios aquí. Conócela a fondo."
                 
-                # Construir mensajes para la API directa
                 messages_input = []
                 for m in st.session_state.historial_chat:
                     messages_input.append({"role": m["role"], "content": m["content"]})
                 
-                # Llamada directa sin fallas
                 message = client.messages.create(
                     model="claude-3-5-sonnet-20241022",
                     max_tokens=1000,
@@ -78,7 +75,7 @@ if modo == "☕ Café con Maya (Conóceme)":
                     messages=messages_input
                 )
                 
-                response_text = message.content[0].text
+                response_text = message.content.text
                 with st.chat_message("assistant"):
                     st.markdown(response_text)
                 st.session_state.historial_chat.append({"role": "assistant", "content": response_text})
@@ -158,7 +155,7 @@ elif modo == "🦈 Consultor Tiburón (Hacer Negocio)":
                 )
                 
                 st.success("🏆 ¡Análisis de Negocio y Manual de Operaciones Completado!")
-                st.markdown(message.content[0].text)
+                st.markdown(message.content.text)
                 
                 if st.button("🚀 Evaluar una nueva idea"):
                     st.session_state.paso_entrevista = 0
@@ -191,3 +188,7 @@ elif modo == "📊 Mi Progreso Semanal/Mensual":
                         messages=[{"role": "user", "content": f"Periodo: {tipo_reporte}. Avances: {reporte_usuario}"}]
                     )
                     st.success("📈 ¡Auditoría de Progreso Completada!")
+                    st.markdown(message.content.text)
+                except Exception as e:
+                    st.error(f"Error en la auditoría: {e}")
+        else:
