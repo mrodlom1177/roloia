@@ -1,17 +1,18 @@
 import streamlit as st
 import os
 from dotenv import load_dotenv
-from crewai import Agent, Crew, Process, Task, LLM
-from crewai_tools import TavilySearchTool
+import anthropic
 
-# Cargar las llaves secretas del archivo .env y Secrets
+# Cargar las llaves secretas
 load_dotenv()
-api_key_anthropic = os.environ.get("ANTHROPIC_API_KEY")
+
+# Obtener la API Key de los secretos de Streamlit o del archivo .env
+api_key = os.environ.get("ANTHROPIC_API_KEY")
 
 # Configuración estética de la aplicación corporativa de Fer
 st.set_page_config(page_title="ROLOIA System", layout="wide", initial_sidebar_state="expanded")
 
-# --- MEMORIA INTERNA DE LA APLICACIÓN ---
+# --- MEMORIA INTERNA DEL CHAT ---
 if "historial_chat" not in st.session_state:
     st.session_state.historial_chat = []
 if "paso_entrevista" not in st.session_state:
@@ -31,7 +32,14 @@ with st.sidebar:
         ["☕ Café con Maya (Conóceme)", "🦈 Consultor Tiburón (Hacer Negocio)", "📊 Mi Progreso Semanal/Mensual"]
     )
     st.write("---")
-    st.caption("MAIA Framework v2.0 - Impulsado por Claude 3.5 Sonnet")
+    st.caption("MAIA Framework v3.0 - Direct Connection")
+
+# Inicializar cliente directo de Anthropic sin librerías estorbosas
+if api_key:
+    client = anthropic.Anthropic(api_key=api_key)
+else:
+    st.error("🚨 Error crítico: No se encontró la ANTHROPIC_API_KEY en tus secretos de Streamlit.")
+    st.stop()
 
 # =========================================================================
 # MODO 1: CAFE CON MAYA (CONÓCEME)
@@ -39,8 +47,9 @@ with st.sidebar:
 if modo == "☕ Café con Maya (Conóceme)":
     st.title("☕ Conectando con MAYA")
     st.subheader("Modo Confidente y Alianza Estratégica")
-    st.write("Fer, este espacio es 100% tuyo. Cuéntame quién eres, qué sueñas, tus miedos o cómo quieres que actúe contigo.")
+    st.write("Fer, este espacio es 100% tuyo. Cuéntame quién eres, tus miedos o cómo quieres que actúe contigo.")
     
+    # Mostrar historial
     for mensaje in st.session_state.historial_chat:
         with st.chat_message(mensaje["role"]):
             st.markdown(mensaje["content"])
@@ -52,25 +61,30 @@ if modo == "☕ Café con Maya (Conóceme)":
         
         with st.spinner("Maya pensando..."):
             try:
-                # CONFIGURACIÓN FORZADA COMPLETA
-                cerebro = LLM(model="anthropic/claude-3-5-sonnet-latest", api_key=api_key_anthropic, temperature=0.5)
-                instrucciones_personales = f"""
-                Eres MAYA, la asistente ejecutiva y mano derecha de María Fernanda Rodríguez Lomeli (a quien siempre, sin excepción, debes llamar 'Fer').
-                Estás en el modo 'Café con Maya'. Tu objetivo aquí es conocerla profundamente: sus valores, sus miedos, sus ideas y su estilo. 
-                Sé empática, motivadora, inteligente y muy analítica. No estructures negocios aquí a menos que ella te lo pida. 
-                Responde de forma conversacional, clara y mantén en tu memoria todo lo que te cuente sobre quién es ella.
-                """
-                conversacion = cerebro.call(messages=[
-                    {"role": "system", "content": instrucciones_personales},
-                    {"role": "user", "content": prompt}
-                ])
+                # Instrucciones del sistema
+                system_prompt = "Eres MAYA, la asistente ejecutiva y mano derecha de Fer Rodríguez Lomeli (siempre llámala 'Fer'). Estás en modo Café. Sé empática, motivadora, sumamente inteligente y conversacional. No estructures negocios aquí. Conócela a fondo."
                 
+                # Construir mensajes para la API directa
+                messages_input = []
+                for m in st.session_state.historial_chat:
+                    messages_input.append({"role": m["role"], "content": m["content"]})
+                
+                # Llamada directa sin fallas
+                message = client.messages.create(
+                    model="claude-3-5-sonnet-20241022",
+                    max_tokens=1000,
+                    temperature=0.5,
+                    system=system_prompt,
+                    messages=messages_input
+                )
+                
+                response_text = message.content[0].text
                 with st.chat_message("assistant"):
-                    st.markdown(conversacion)
-                st.session_state.historial_chat.append({"role": "assistant", "content": conversacion})
+                    st.markdown(response_text)
+                st.session_state.historial_chat.append({"role": "assistant", "content": response_text})
                 st.rerun()
             except Exception as e:
-                st.error(f"Error de conexión: {e}")
+                st.error(f"Error en la comunicación directa con Claude: {e}")
 
 # =========================================================================
 # MODO 2: CONSULTOR TIBURÓN
@@ -92,11 +106,11 @@ elif modo == "🦈 Consultor Tiburón (Hacer Negocio)":
                 st.session_state.paso_entrevista = 1
                 st.rerun()
             else:
-                st.error("Fer, por favor completa ambos campos para poder interrogarte con precisión.")
+                st.error("Fer, por favor completa ambos campos para poder interrogarte.")
 
     elif st.session_state.paso_entrevista == 1:
         st.markdown("### 🔍 Preguntas Profundas de Validación")
-        st.write("Analizando viabilidad real... Responde con la verdad, Fer:")
+        st.write("Analizando viabilidad real en México... Responde con la verdad, Fer:")
         
         preg_1 = st.text_input("1. ¿Cuál crees que es tu mayor ventaja competitiva real frente a lo que ya existe en México?")
         preg_2 = st.text_input("2. ¿Cómo planeas conseguir a tus primeros clientes si no tienes presupuesto de marketing inicial?")
@@ -114,64 +128,43 @@ elif modo == "🦈 Consultor Tiburón (Hacer Negocio)":
                 st.rerun()
 
     elif st.session_state.paso_entrevista == 2:
-        st.info("⚡ MAYA está activando sus procesos automatizados e investigando la competencia...")
+        st.info("⚡ MAYA en modo Tiburón está analizando los riesgos del mercado mexicano...")
         
         with st.spinner("Fabricando soluciones reales sin sesgos humanos... Por favor espera."):
             try:
-                cerebro_premium = LLM(model="anthropic/claude-3-5-sonnet-latest", api_key=api_key_anthropic, temperature=0.1)
-                herramienta_busqueda = TavilySearchTool()
-
-                tiburon = Agent(
-                    role='Consultor Tiburón de Negocios Élite',
-                    goal='Destruir sesgos, identificar fallas críticas en la idea y reestructurarla para que sea un éxito económico masivo en México.',
-                    backstory='Eres MAYA en modo Tiburón. Un estratega comercial implacable. No suavizas la realidad a Fer, pero le rediseñas la idea tú mismo para que funcione y deje mucho dinero.',
-                    tools=[herramienta_busqueda],
-                    llm=cerebro_premium
-                )
-
-                coo = Agent(
-                    role='Director de Operaciones Corporativas (COO)',
-                    goal='Convertir la propuesta corregida por el tiburón en un Manual Operativo ultra específico para empleados.',
-                    backstory='Especialista en procesos sencillos para que Fer no trabaje en la operación, sino que todo lo ejecuten terceros de forma automática.',
-                    llm=cerebro_premium
-                )
-
-                contexto_usuario = f"""
-                Idea de Fer: {st.session_state.datos_negocio['idea_bruta']}
-                Mercado en México: {st.session_state.datos_negocio['mercado_meta']}
-                Ventaja percibida: {st.session_state.datos_negocio['ventaja']}
-                Estrategia clientes: {st.session_state.datos_negocio['marketing']}
+                system_prompt_tiburon = """
+                Actúas como MAYA en modo Consultor Tiburón Élite de Negocios para México. Eres un estratega implacable, frío y analítico.
+                Tu trabajo es destruir los sesgos de Fer, decirle qué está mal de forma cruda, pero REDISEÑAR la idea tú mismo para que funcione y sea un éxito económico.
+                
+                Posteriormente, debes actuar como Director de Operaciones (COO) y entregarle un Manual Operativo ultra específico para que otra persona lo opere por ella.
+                Cada tarea del manual debe responder explícitamente:
+                - QUÉ se hace.
+                - QUIÊN lo hace (empleado o herramienta digital).
+                - CÓMO se hace (instrucciones sencillas paso a paso).
+                - CUÁNDO se hace.
+                - CUÁNTO cuesta o genera en pesos mexicanos.
+                - DÓNDE se ejecuta.
+                Siempre dirígete a ella como 'Fer'.
                 """
-
-                tarea_analisis = Task(
-                    description=f'Analiza con frialdad matemática este negocio para el mercado mexicano actual: {contexto_usuario}. Encuentra fallas de dinero o logística y rediseña la idea para arreglar esos huecos por completo.',
-                    expected_output='Informe crudo con errores encontrados y la nueva propuesta completamente resuelta.',
-                    agent=tiburon
+                
+                contexto_usuario = f"Idea de Fer: {st.session_state.datos_negocio['idea_bruta']}. Mercado: {st.session_state.datos_negocio['mercado_meta']}. Ventaja: {st.session_state.datos_negocio['ventaja']}. Marketing: {st.session_state.datos_negocio['marketing']}."
+                
+                message = client.messages.create(
+                    model="claude-3-5-sonnet-20241022",
+                    max_tokens=2500,
+                    temperature=0.2,
+                    system=system_prompt_tiburon,
+                    messages=[{"role": "user", "content": contexto_usuario}]
                 )
-
-                tarea_manual = Task(
-                    description='Toma la idea resuelta y crea un Manual Operativo detallado por tareas simples. Cada tarea debe responder obligatoriamente de forma explícita: - QUÉ se hace, - QUIÊN lo hace (empleado/herramienta), - CÓMO se hace (paso a paso sencillo), - CUÁNDO se hace, - CUÁNTO cuesta o genera, - DÓNDE se ejecuta. Asegura que Fer no intervenga en la operación diaria.',
-                    expected_output='Un Manual de Operación y Delegación impecable con instrucciones ultra específicas.',
-                    agent=coo
-                )
-
-                corporacion = Crew(
-                    agents=[tiburon, coo],
-                    tasks=[tarea_analisis, tarea_manual],
-                    process=Process.sequential
-                )
-
-                resultado = corporacion.kickoff()
-
-                st.success("🏆 ¡Proceso Automatizado Completado con Éxito!")
-                st.markdown(resultado.raw)
+                
+                st.success("🏆 ¡Análisis de Negocio y Manual de Operaciones Completado!")
+                st.markdown(message.content[0].text)
                 
                 if st.button("🚀 Evaluar una nueva idea"):
                     st.session_state.paso_entrevista = 0
                     st.rerun()
-
             except Exception as e:
-                st.error(f"Ocurrió un detalle en la conexión: {e}")
+                st.error(f"Error en la generación estratégica: {e}")
 
 # =========================================================================
 # MODO 3: MI PROGRESO SEMANAL/MENSUAL
@@ -179,7 +172,22 @@ elif modo == "🦈 Consultor Tiburón (Hacer Negocio)":
 elif modo == "📊 Mi Progreso Semanal/Mensual":
     st.title("📊 Control de Progreso y Rendición de Cuentas")
     st.subheader("Evaluación de metas de Fer Rodríguez Lomeli")
-    st.write("Fer, para construir un imperio necesitas medir tus avances.")
+    st.write("Fer, cuéntale a MAYA qué hiciste esta semana o este mes, cuánto dinero entró/salió y ella evaluará críticamente tu velocidad de crecimiento.")
     
     tipo_reporte = st.selectbox("¿Qué periodo vamos a evaluar hoy, Fer?", ["Evaluación Semanal", "Evaluación Mensual"])
     reporte_usuario = st.text_area("Escribe aquí tu bitácora de avances:", height=200)
+    
+    if st.button("Solicitar Auditoría de Rendimiento"):
+        if reporte_usuario:
+            with st.spinner("Maya analizando tus métricas y rendimiento..."):
+                try:
+                    system_prompt_auditor = "Actúas como MAYA, la Directora de Rendimiento y socia de Fer Rodríguez Lomeli. Haz una auditoría profunda, fría y realista. Dile qué 3 acciones ultra específicas debe ejecutar para acelerar y dejar de operar ella misma. Tono directo y siempre llámala 'Fer'."
+                    
+                    message = client.messages.create(
+                        model="claude-3-5-sonnet-20241022",
+                        max_tokens=1500,
+                        temperature=0.1,
+                        system=system_prompt_auditor,
+                        messages=[{"role": "user", "content": f"Periodo: {tipo_reporte}. Avances: {reporte_usuario}"}]
+                    )
+                    st.success("📈 ¡Auditoría de Progreso Completada!")
