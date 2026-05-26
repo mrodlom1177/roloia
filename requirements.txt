@@ -1,4 +1,4 @@
-crewai
+crewai[anthropic]
 crewai-tools
 streamlit
 pydantic
