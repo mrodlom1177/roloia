@@ -5,10 +5,25 @@ from datetime import datetime
 
 st.set_page_config(page_title="MAIA", layout="wide")
 
+# ----------------------------
+# UI FIX (caja más cómoda)
+# ----------------------------
+st.markdown(
+    """
+    <style>
+    .stTextArea textarea {
+        height: 120px;
+        font-size: 16px;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 DATA_FILE = "maia_data.json"
 
 # ----------------------------
-# DATA SAFE LOAD (SIN ERRORES)
+# DATA SAFE LOAD
 # ----------------------------
 def load_data():
     default = {
@@ -48,31 +63,47 @@ if "current_chat" not in st.session_state:
     st.session_state.current_chat = None
 
 # ----------------------------
-# MAIA CORE (BASE CEO)
+# MAIA CORE (REAL PERSONALITY)
 # ----------------------------
 def maia_response(text):
+
     if len(text.split()) < 6:
         return (
-            "Fer, necesito más contexto antes de analizar como CEO.\n\n"
-            "Respóndeme esto:\n"
-            "1. ¿Cuál es el objetivo?\n"
+            "Fer, necesito contexto antes de analizar.\n\n"
+            "Respóndeme:\n"
+            "1. ¿Qué quieres lograr?\n"
             "2. ¿Es negocio, escuela o personal?\n"
+            "3. ¿Cuál es el objetivo final?"
         )
 
-    return (
-        "MAIA (Modo CEO):\n\n"
-        "Estrategia:\n"
-        "- Definir objetivo claro\n\n"
-        "Marketing:\n"
-        "- Cómo se comunica y a quién va dirigido\n\n"
-        "Finanzas:\n"
-        "- Costos, ingresos o valor generado\n\n"
-        "Operaciones:\n"
-        "- Pasos para ejecutarlo\n\n"
-        "Ventas:\n"
-        "- Cómo se convierte en resultado real\n\n"
-        "Fer, si quieres lo convierto en plan paso a paso."
-    )
+    return f"""
+MAIA (Modo CEO):
+
+He analizado lo que dijiste:
+
+{text}
+
+---
+
+ESTRATEGIA:
+- Definir objetivo claro y medible
+
+MARKETING:
+- Cómo se comunica y a quién va dirigido
+
+FINANZAS:
+- Costos, recursos o impacto económico
+
+OPERACIONES:
+- Pasos concretos de ejecución
+
+VENTAS / RESULTADO:
+- Cómo se convierte en resultado real
+
+---
+
+Fer, dime si quieres que lo convierta en un plan de 7 o 30 días.
+"""
 
 # ----------------------------
 # NEW CHAT
@@ -101,7 +132,7 @@ st.sidebar.markdown("---")
 if st.sidebar.button("Nuevo chat"):
     new_chat()
 
-# lista de chats
+# chats list
 for chat_id in data["chats"]:
     title = data["chats"][chat_id]["title"]
 
@@ -117,15 +148,15 @@ chat_id = st.session_state.current_chat
 # CHAT PAGE
 # ----------------------------
 if page == "Chat":
-    st.title("MAIA - Chat con Fer")
+    st.title("MAIA - Consultora de Fer")
 
     if chat_id is None:
-        st.info("Crea un nuevo chat para comenzar.")
+        st.info("Crea un nuevo chat para empezar.")
         st.stop()
 
     chat = data["chats"][chat_id]
 
-    # mensajes estilo WhatsApp
+    # mensajes tipo WhatsApp
     for m in chat["messages"]:
         if m["role"] == "user":
             st.markdown(
@@ -165,7 +196,8 @@ if page == "Chat":
 
     if send and user_input:
         if chat["title"] == "Nuevo chat":
-            chat["title"] = user_input[:30]
+            words = user_input.split()
+            chat["title"] = " ".join(words[:4])
 
         chat["messages"].append({
             "role": "user",
