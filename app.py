@@ -5,28 +5,15 @@ client = anthropic.Anthropic(
     api_key=st.secrets["ANTHROPIC_API_KEY"]
 )
 
-st.title("🦅 ROLOIA")
+st.title("MODELOS DISPONIBLES")
 
-pregunta = st.text_input("Pregunta")
-
-if st.button("Enviar"):
+if st.button("Ver modelos"):
 
     try:
 
-        response = client.messages.create(
-            model="claude-3-5-sonnet-20241022",
-            max_tokens=100,
-            messages=[
-                {
-                    "role": "user",
-                    "content": pregunta
-                }
-            ]
-        )
+        modelos = client.models.list()
 
-        st.success("FUNCIONA 🎉")
-
-        st.write(response.content[0].text)
+        st.write(modelos)
 
     except Exception as e:
 
