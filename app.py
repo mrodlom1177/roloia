@@ -7,17 +7,17 @@ import pandas as pd
 # ----------------------------
 # CONFIG
 # ----------------------------
-st.set_page_config(page_title="ROLOIA", layout="wide")
+st.set_page_config(page_title="MAIA", layout="wide")
 
-DATA_FILE = "data.json"
+DATA_FILE = "maia_data.json"
 
 # ----------------------------
-# DATA HANDLING
+# DATA
 # ----------------------------
 def load_data():
     if not os.path.exists(DATA_FILE):
         return {
-            "chat_general": [],
+            "chat": [],
             "negocios": [],
             "reflexion": []
         }
@@ -31,40 +31,99 @@ def save_data(data):
 data = load_data()
 
 # ----------------------------
-# SIDEBAR NAVIGATION
+# MAIA CORE LOGIC
 # ----------------------------
-st.sidebar.title("ROLOIA")
+def maia_response(user_input):
+    """
+    MAIA siempre:
+    1. hace preguntas primero
+    2. responde si hay contexto suficiente
+    3. incluye reflexión con score
+    """
+
+    preguntas = [
+        "Fer, ¿cuál es el objetivo exacto de lo que quieres hacer?",
+        "Fer, ¿esto es para negocio, escuela o algo personal?"
+    ]
+
+    respuesta = ""
+    
+    # lógica simple: si el mensaje es corto, pedimos más contexto
+    if len(user_input.split()) < 6:
+        respuesta = "Fer, necesito más contexto para darte una respuesta útil."
+    else:
+        respuesta = (
+            "Análisis MAIA:\n"
+            "- CEO: estructura la idea y define objetivo claro\n"
+            "- Marketing: revisar cómo se comunica\n"
+            "- Finanzas: evaluar si tiene costo o ganancia\n"
+            "- Operaciones: definir pasos de ejecución\n"
+            "- Ventas: identificar cómo se monetiza o se presenta"
+        )
+
+    reflexion = {
+        "claridad": 8,
+        "utilidad": 7,
+        "riesgo_error": "medio",
+        "mejora": "Solicitar más contexto antes de analizar"
+    }
+
+    return preguntas, respuesta, reflexion
+
+# ----------------------------
+# SIDEBAR
+# ----------------------------
+st.sidebar.title("MAIA")
 page = st.sidebar.selectbox(
-    "Selecciona sección",
+    "Secciones",
     ["Chat", "Negocios", "Reflexión", "Documentos"]
 )
 
 # ----------------------------
-# CHAT GENERAL
+# CHAT
 # ----------------------------
 if page == "Chat":
-    st.title("Chat general")
+    st.title("MAIA - Chat con Fer")
 
     if "messages" not in st.session_state:
-        st.session_state.messages = data["chat_general"]
+        st.session_state.messages = data["chat"]
 
-    user_input = st.text_input("Escribe aquí")
+    user_input = st.text_input("Fer, escribe tu mensaje")
 
     if st.button("Enviar"):
         if user_input:
-            message = {
-                "role": "user",
-                "text": user_input,
+
+            preguntas, respuesta, reflexion = maia_response(user_input)
+
+            entry = {
+                "user": user_input,
+                "questions": preguntas,
+                "response": respuesta,
+                "reflection": reflexion,
                 "time": str(datetime.now())
             }
-            st.session_state.messages.append(message)
-            data["chat_general"].append(message)
+
+            st.session_state.messages.append(entry)
+            data["chat"].append(entry)
             save_data(data)
 
-    st.write("Historial")
+    st.subheader("Historial")
 
-    for msg in st.session_state.messages:
-        st.write(f"{msg['role']}: {msg['text']} ({msg['time']})")
+    for m in st.session_state.messages:
+        st.markdown("### Usuario")
+        st.write(m["user"])
+
+        st.markdown("### MAIA Preguntas")
+        for q in m["questions"]:
+            st.write(q)
+
+        st.markdown("### MAIA Respuesta")
+        st.write(m["response"])
+
+        st.markdown("### Reflexión MAIA")
+        st.write(m["reflection"])
+
+        st.write("---")
 
 # ----------------------------
 # NEGOCIOS
@@ -72,69 +131,55 @@ if page == "Chat":
 elif page == "Negocios":
     st.title("Negocios")
 
-    idea = st.text_input("Nueva idea de negocio")
+    idea = st.text_input("Fer, nueva idea de negocio")
     status = st.selectbox("Estado", ["Idea", "En proceso", "Activo"])
 
-    if st.button("Guardar negocio"):
+    if st.button("Guardar"):
         if idea:
-            item = {
+            data["negocios"].append({
                 "idea": idea,
                 "status": status,
                 "time": str(datetime.now())
-            }
-            data["negocios"].append(item)
+            })
             save_data(data)
 
-    st.subheader("Tus negocios")
-
     if data["negocios"]:
-        df = pd.DataFrame(data["negocios"])
-        st.dataframe(df)
+        st.dataframe(pd.DataFrame(data["negocios"]))
 
 # ----------------------------
 # REFLEXIÓN
 # ----------------------------
 elif page == "Reflexion":
-    st.title("Reflexión y progreso")
+    st.title("Reflexión")
 
-    tipo = st.selectbox("Tipo de reflexión", ["Semanal", "Mensual"])
-    texto = st.text_area("Escribe tu reflexión")
+    tipo = st.selectbox("Tipo", ["Semanal", "Mensual"])
+    texto = st.text_area("Fer, escribe tu reflexión")
 
-    if st.button("Guardar reflexión"):
+    if st.button("Guardar"):
         if texto:
-            item = {
+            data["reflexion"].append({
                 "tipo": tipo,
                 "texto": texto,
                 "time": str(datetime.now())
-            }
-            data["reflexion"].append(item)
+            })
             save_data(data)
 
-    st.subheader("Historial de reflexiones")
-
     if data["reflexion"]:
-        df = pd.DataFrame(data["reflexion"])
-        st.dataframe(df)
+        st.dataframe(pd.DataFrame(data["reflexion"]))
 
 # ----------------------------
 # DOCUMENTOS
 # ----------------------------
 elif page == "Documentos":
-    st.title("Generador de documentos")
+    st.title("Documentos")
 
-    titulo = st.text_input("Título del documento")
+    titulo = st.text_input("Título")
     contenido = st.text_area("Contenido")
 
-    if st.button("Guardar documento"):
+    if st.button("Crear documento"):
         if titulo and contenido:
-            filename = f"documento_{titulo.replace(' ', '_')}.txt"
+            filename = f"{titulo.replace(' ', '_')}.txt"
             with open(filename, "w", encoding="utf-8") as f:
                 f.write(contenido)
 
-            st.success("Documento guardado")
-
-    st.subheader("Exportación rápida")
-
-    if st.button("Ver archivos guardados"):
-        files = [f for f in os.listdir() if f.endswith(".txt")]
-        st.write(files)
+            st.success("Documento creado")
