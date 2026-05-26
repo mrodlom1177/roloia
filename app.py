@@ -5,16 +5,35 @@ client = anthropic.Anthropic(
     api_key=st.secrets["ANTHROPIC_API_KEY"]
 )
 
-st.title("MODELOS DISPONIBLES")
+st.set_page_config(
+    page_title="ROLOIA",
+    layout="wide"
+)
 
-if st.button("Ver modelos"):
+st.title("🦅 ROLOIA / MAIA")
+
+pregunta = st.text_input("Habla con MAYA")
+
+if st.button("Enviar"):
 
     try:
 
-        modelos = client.models.list()
+        response = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=300,
+            messages=[
+                {
+                    "role": "user",
+                    "content": pregunta
+                }
+            ]
+        )
 
-        for modelo in modelos.data:
-            st.write(modelo.id)
+        respuesta = response.content[0].text
+
+        st.success("MAYA respondió 🎉")
+
+        st.write(respuesta)
 
     except Exception as e:
 
