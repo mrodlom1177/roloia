@@ -2,184 +2,148 @@ import streamlit as st
 import json
 import os
 from datetime import datetime
-import pandas as pd
 
-# ----------------------------
-# CONFIG
-# ----------------------------
 st.set_page_config(page_title="MAIA", layout="wide")
 
-DATA_FILE = "maia_data.json"
+DATA_FILE = "maia_chats.json"
 
 # ----------------------------
 # DATA
 # ----------------------------
 def load_data():
     if not os.path.exists(DATA_FILE):
-        return {
-            "chat": [],
-            "negocios": [],
-            "reflexion": []
-        }
+        return {"chats": {}}
     with open(DATA_FILE, "r") as f:
         return json.load(f)
 
 def save_data(data):
     with open(DATA_FILE, "w") as f:
-        json.dump(data, f, indent=4)
+        json.dump(data, f, indent=2)
 
 data = load_data()
 
 # ----------------------------
-# MAIA CORE LOGIC
+# INIT
 # ----------------------------
-def maia_response(user_input):
-    """
-    MAIA siempre:
-    1. hace preguntas primero
-    2. responde si hay contexto suficiente
-    3. incluye reflexión con score
-    """
+if "current_chat" not in st.session_state:
+    st.session_state.current_chat = None
 
-    preguntas = [
-        "Fer, ¿cuál es el objetivo exacto de lo que quieres hacer?",
-        "Fer, ¿esto es para negocio, escuela o algo personal?"
-    ]
-
-    respuesta = ""
-    
-    # lógica simple: si el mensaje es corto, pedimos más contexto
-    if len(user_input.split()) < 6:
-        respuesta = "Fer, necesito más contexto para darte una respuesta útil."
-    else:
-        respuesta = (
-            "Análisis MAIA:\n"
-            "- CEO: estructura la idea y define objetivo claro\n"
-            "- Marketing: revisar cómo se comunica\n"
-            "- Finanzas: evaluar si tiene costo o ganancia\n"
-            "- Operaciones: definir pasos de ejecución\n"
-            "- Ventas: identificar cómo se monetiza o se presenta"
-        )
-
-    reflexion = {
-        "claridad": 8,
-        "utilidad": 7,
-        "riesgo_error": "medio",
-        "mejora": "Solicitar más contexto antes de analizar"
+# ----------------------------
+# CREATE CHAT
+# ----------------------------
+def new_chat():
+    chat_id = f"chat_{len(data['chats'])+1}"
+    data["chats"][chat_id] = {
+        "title": "Nuevo chat",
+        "messages": []
     }
-
-    return preguntas, respuesta, reflexion
+    save_data(data)
+    st.session_state.current_chat = chat_id
 
 # ----------------------------
-# SIDEBAR
+# MAIA CORE (básico ahora)
+# ----------------------------
+def maia_answer(text):
+    return (
+        "Fer, antes de darte una respuesta necesito claridad:\n"
+        "1. ¿Cuál es el objetivo?\n"
+        "2. ¿Esto es negocio, escuela o personal?\n\n"
+        "Cuando me respondas te doy análisis completo como CEO."
+    )
+
+# ----------------------------
+# SIDEBAR (HISTORIAL)
 # ----------------------------
 st.sidebar.title("MAIA")
-page = st.sidebar.selectbox(
-    "Secciones",
-    ["Chat", "Negocios", "Reflexión", "Documentos"]
-)
+
+if st.sidebar.button("Nuevo chat"):
+    new_chat()
+
+chat_keys = list(data["chats"].keys())
+
+for c in chat_keys:
+    title = data["chats"][c]["title"]
+    if st.sidebar.button(title):
+        st.session_state.current_chat = c
+
+# si no hay chat seleccionado
+if not st.session_state.current_chat and chat_keys:
+    st.session_state.current_chat = chat_keys[-1]
+
+chat_id = st.session_state.current_chat
 
 # ----------------------------
-# CHAT
+# MAIN UI
 # ----------------------------
-if page == "Chat":
-    st.title("MAIA - Chat con Fer")
+st.title("MAIA")
 
-    if "messages" not in st.session_state:
-        st.session_state.messages = data["chat"]
+if chat_id:
+    chat = data["chats"][chat_id]
 
-    user_input = st.text_input("Fer, escribe tu mensaje")
-
-    if st.button("Enviar"):
-        if user_input:
-
-            preguntas, respuesta, reflexion = maia_response(user_input)
-
-            entry = {
-                "user": user_input,
-                "questions": preguntas,
-                "response": respuesta,
-                "reflection": reflexion,
-                "time": str(datetime.now())
-            }
-
-            st.session_state.messages.append(entry)
-            data["chat"].append(entry)
-            save_data(data)
-
-    st.subheader("Historial")
-
-    for m in st.session_state.messages:
-        st.markdown("### Usuario")
-        st.write(m["user"])
-
-        st.markdown("### MAIA Preguntas")
-        for q in m["questions"]:
-            st.write(q)
-
-        st.markdown("### MAIA Respuesta")
-        st.write(m["response"])
-
-        st.markdown("### Reflexión MAIA")
-        st.write(m["reflection"])
-
-        st.write("---")
+    # ----------------------------
+    # CHAT VISUAL STYLE (tipo WhatsApp)
+    # ----------------------------
+    for m in chat["messages"]:
+        if m["role"] == "user":
+            st.markdown(
+                f"""
+                <div style='text-align:right; background-color:#DCF8C6; padding:10px; border-radius:10px; margin:5px'>
+                Fer: {m['text']}
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+        else:
+            st.markdown(
+                f"""
+                <div style='text-align:left; background-color:#F1F0F0; padding:10px; border-radius:10px; margin:5px'>
+                MAIA: {m['text']}
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
 
 # ----------------------------
-# NEGOCIOS
+# INPUT GRANDE (tipo WhatsApp)
 # ----------------------------
-elif page == "Negocios":
-    st.title("Negocios")
+st.markdown("---")
+user_input = st.text_area("Escribe a MAIA", height=120)
 
-    idea = st.text_input("Fer, nueva idea de negocio")
-    status = st.selectbox("Estado", ["Idea", "En proceso", "Activo"])
+col1, col2 = st.columns([1,1])
 
-    if st.button("Guardar"):
-        if idea:
-            data["negocios"].append({
-                "idea": idea,
-                "status": status,
-                "time": str(datetime.now())
-            })
-            save_data(data)
+with col1:
+    send = st.button("Enviar")
 
-    if data["negocios"]:
-        st.dataframe(pd.DataFrame(data["negocios"]))
+with col2:
+    clear = st.button("Limpiar chat")
 
-# ----------------------------
-# REFLEXIÓN
-# ----------------------------
-elif page == "Reflexion":
-    st.title("Reflexión")
+if clear and chat_id:
+    data["chats"][chat_id]["messages"] = []
+    save_data(data)
+    st.rerun()
 
-    tipo = st.selectbox("Tipo", ["Semanal", "Mensual"])
-    texto = st.text_area("Fer, escribe tu reflexión")
+if send and user_input and chat_id:
+    chat = data["chats"][chat_id]
 
-    if st.button("Guardar"):
-        if texto:
-            data["reflexion"].append({
-                "tipo": tipo,
-                "texto": texto,
-                "time": str(datetime.now())
-            })
-            save_data(data)
+    # mensaje usuario
+    chat["messages"].append({
+        "role": "user",
+        "text": user_input,
+        "time": str(datetime.now())
+    })
 
-    if data["reflexion"]:
-        st.dataframe(pd.DataFrame(data["reflexion"]))
+    # respuesta MAIA
+    response = maia_answer(user_input)
 
-# ----------------------------
-# DOCUMENTOS
-# ----------------------------
-elif page == "Documentos":
-    st.title("Documentos")
+    chat["messages"].append({
+        "role": "maia",
+        "text": response,
+        "time": str(datetime.now())
+    })
 
-    titulo = st.text_input("Título")
-    contenido = st.text_area("Contenido")
+    # título automático si es primer mensaje
+    if chat["title"] == "Nuevo chat":
+        chat["title"] = user_input[:25]
 
-    if st.button("Crear documento"):
-        if titulo and contenido:
-            filename = f"{titulo.replace(' ', '_')}.txt"
-            with open(filename, "w", encoding="utf-8") as f:
-                f.write(contenido)
-
-            st.success("Documento creado")
+    save_data(data)
+    st.rerun()
