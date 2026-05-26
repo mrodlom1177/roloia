@@ -1,7 +1,7 @@
 import streamlit as st
-import anthropic
+from anthropic import Anthropic
 
-client = anthropic.Client(
+client = Anthropic(
     api_key=st.secrets["ANTHROPIC_API_KEY"]
 )
 
@@ -13,16 +13,20 @@ if st.button("Enviar"):
 
     try:
 
-        response = client.completion(
-            prompt=f"{anthropic.HUMAN_PROMPT} {pregunta}{anthropic.AI_PROMPT}",
-            stop_sequences=[anthropic.HUMAN_PROMPT],
-            model="claude-2.1",
-            max_tokens_to_sample=100,
+        response = client.messages.create(
+            model="claude-3-5-sonnet-20241022",
+            max_tokens=100,
+            messages=[
+                {
+                    "role": "user",
+                    "content": pregunta
+                }
+            ]
         )
 
         st.success("FUNCIONA 🎉")
 
-        st.write(response["completion"])
+        st.write(response.content[0].text)
 
     except Exception as e:
 
