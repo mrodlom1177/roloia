@@ -1,5 +1,4 @@
-crewai[anthropic]
-crewai-tools
+pip install --upgrade anthropic
 streamlit
-pydantic
+anthropic>=0.34.0
 python-dotenv
