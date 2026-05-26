@@ -4,8 +4,9 @@ from dotenv import load_dotenv
 from crewai import Agent, Crew, Process, Task, LLM
 from crewai_tools import TavilySearchTool
 
-# Cargar las llaves secretas del archivo .env
+# Cargar las llaves secretas del archivo .env y Secrets
 load_dotenv()
+api_key_anthropic = os.environ.get("ANTHROPIC_API_KEY")
 
 # Configuración estética de la aplicación corporativa de Fer
 st.set_page_config(page_title="ROLOIA System", layout="wide", initial_sidebar_state="expanded")
@@ -20,7 +21,7 @@ if "datos_negocio" not in st.session_state:
 
 # --- MENÚ LATERAL DE NAVEGACIÓN ---
 with st.sidebar:
-    st.image("https://unsplash.com", width=150) # Imagen corporativa elegante
+    st.image("https://unsplash.com", width=150)
     st.title("🦅 ROLOIA System")
     st.write("Director General: **Fer Rodríguez Lomeli**")
     st.write("---")
@@ -38,9 +39,8 @@ with st.sidebar:
 if modo == "☕ Café con Maya (Conóceme)":
     st.title("☕ Conectando con MAYA")
     st.subheader("Modo Confidente y Alianza Estratégica")
-    st.write("Fer, este espacio es 100% tuyo. Cuéntame quién eres, qué sueñas, tus miedos o cómo quieres que actúe contigo. Aquí no te voy a presionar con estructuras, estoy guardando todo en mi memoria para conocerte a fondo.")
+    st.write("Fer, este espacio es 100% tuyo. Cuéntame quién eres, qué sueñas, tus miedos o cómo quieres que actúe contigo.")
     
-    # Mostrar el chat interactivo
     for mensaje in st.session_state.historial_chat:
         with st.chat_message(mensaje["role"]):
             st.markdown(mensaje["content"])
@@ -52,8 +52,8 @@ if modo == "☕ Café con Maya (Conóceme)":
         
         with st.spinner("Maya pensando..."):
             try:
-                # CORRECCIÓN AQUÍ: Quitamos 'anthropic/'
-                cerebro = LLM(model="claude-3-5-sonnet-20241022", temperature=0.5)
+                # CONFIGURACIÓN FORZADA COMPLETA
+                cerebro = LLM(model="anthropic/claude-3-5-sonnet-latest", api_key=api_key_anthropic, temperature=0.5)
                 instrucciones_personales = f"""
                 Eres MAYA, la asistente ejecutiva y mano derecha de María Fernanda Rodríguez Lomeli (a quien siempre, sin excepción, debes llamar 'Fer').
                 Estás en el modo 'Café con Maya'. Tu objetivo aquí es conocerla profundamente: sus valores, sus miedos, sus ideas y su estilo. 
@@ -118,8 +118,7 @@ elif modo == "🦈 Consultor Tiburón (Hacer Negocio)":
         
         with st.spinner("Fabricando soluciones reales sin sesgos humanos... Por favor espera."):
             try:
-                # CORRECCIÓN AQUÍ: Quitamos 'anthropic/'
-                cerebro_premium = LLM(model="claude-3-5-sonnet-20241022", temperature=0.1)
+                cerebro_premium = LLM(model="anthropic/claude-3-5-sonnet-latest", api_key=api_key_anthropic, temperature=0.1)
                 herramienta_busqueda = TavilySearchTool()
 
                 tiburon = Agent(
@@ -180,4 +179,7 @@ elif modo == "🦈 Consultor Tiburón (Hacer Negocio)":
 elif modo == "📊 Mi Progreso Semanal/Mensual":
     st.title("📊 Control de Progreso y Rendición de Cuentas")
     st.subheader("Evaluación de metas de Fer Rodríguez Lomeli")
-    st.write("Fer, para construir un imperio necesitas medir tus avances. Cuéntale a MAYA qué hiciste esta semana o este mes, cuánto dinero entró/salió o qué te detuvo, y ella evaluará críticamente tu velocidad de crecimiento.")
+    st.write("Fer, para construir un imperio necesitas medir tus avances.")
+    
+    tipo_reporte = st.selectbox("¿Qué periodo vamos a evaluar hoy, Fer?", ["Evaluación Semanal", "Evaluación Mensual"])
+    reporte_usuario = st.text_area("Escribe aquí tu bitácora de avances:", height=200)
