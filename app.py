@@ -1,33 +1,40 @@
 import streamlit as st
-from anthropic import Anthropic
+from openai import OpenAI
 
-client = Anthropic(
-    api_key=st.secrets["ANTHROPIC_API_KEY"]
+client = OpenAI(
+    api_key=st.secrets["OPENAI_API_KEY"]
 )
 
-st.title("ROLOIA TEST")
+st.title("🦅 ROLOIA")
 
-pregunta = st.text_input("Pregunta")
+pregunta = st.text_input("Habla con MAYA")
 
 if st.button("Enviar"):
 
-    try:
+    if pregunta:
 
-        response = client.messages.create(
-            model="claude-3-5-sonnet-20241022",
-            max_tokens=100,
-            messages=[
-                {
-                    "role": "user",
-                    "content": pregunta
-                }
-            ]
-        )
+        try:
 
-        st.success("FUNCIONA 🎉")
+            respuesta = client.chat.completions.create(
+                model="gpt-4.1-mini",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "Eres MAYA, una asistente inteligente, elegante y motivadora. Siempre llamas a la usuaria Fer."
+                    },
+                    {
+                        "role": "user",
+                        "content": pregunta
+                    }
+                ]
+            )
 
-        st.write(response.content[0].text)
+            texto = respuesta.choices[0].message.content
 
-    except Exception as e:
+            st.success("FUNCIONA 🎉")
 
-        st.error(str(e))
+            st.write(texto)
+
+        except Exception as e:
+
+            st.error(str(e))
