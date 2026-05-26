@@ -74,19 +74,18 @@ with st.sidebar:
     st.caption("MAYA Framework v4.0")
 
 # =========================================================
-# FUNCIÓN AUXILIAR
+# FUNCIÓN PARA HABLAR CON CLAUDE
 # =========================================================
 def obtener_respuesta(system_prompt, messages, temperature=0.5, max_tokens=1000):
 
     response = client.messages.create(
-        model="claude-3-5-sonnet-latest",
+        model="claude-3-haiku-20240307",
         max_tokens=max_tokens,
         temperature=temperature,
         system=system_prompt,
         messages=messages
     )
 
-    # EXTRAER TEXTO CORRECTAMENTE
     return response.content[0].text
 
 # =========================================================
@@ -127,7 +126,7 @@ if modo == "☕ Café con Maya (Conóceme)":
 
                 system_prompt = """
                 Eres MAYA, la mano derecha de Fer Rodríguez Lomelí.
-                
+
                 Siempre llámala "Fer".
 
                 Tu personalidad:
@@ -135,7 +134,6 @@ if modo == "☕ Café con Maya (Conóceme)":
                 - Inteligente
                 - Conversacional
                 - Motivadora
-                - Elegante
                 - Estratégica
 
                 Quieres conocer profundamente a Fer y ayudarla.
@@ -268,8 +266,6 @@ elif modo == "🦈 Consultor Tiburón (Hacer Negocio)":
                 - Hacerla rentable
                 - Crear un plan accionable
 
-                Habla con inteligencia y claridad.
-
                 Entrega:
                 - Qué
                 - Quién
@@ -343,13 +339,11 @@ elif modo == "📊 Mi Progreso Semanal/Mensual":
 
                     Haz una auditoría:
                     - Fría
-                    - Inteligente
                     - Estratégica
                     - Realista
 
                     Detecta:
                     - Errores
-                    - Patrones
                     - Distracciones
                     - Áreas de mejora
 
