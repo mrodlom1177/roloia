@@ -1,85 +1,33 @@
 import streamlit as st
-from openai import OpenAI
+import anthropic
 
-# CONFIGURAR API
-client = OpenAI(
-    api_key=st.secrets["OPENAI_API_KEY"]
+client = anthropic.Anthropic(
+    api_key=st.secrets["ANTHROPIC_API_KEY"]
 )
 
-# CONFIGURACIÓN
-st.set_page_config(
-    page_title="ROLOIA",
-    layout="wide"
-)
+st.title("🦅 ROLOIA")
 
-# MEMORIA
-if "chat" not in st.session_state:
-    st.session_state.chat = []
+pregunta = st.text_input("Pregunta")
 
-# TÍTULO
-st.title("🦅 ROLOIA / MAIA")
-st.subheader("Consultora Estratégica de Fer Rodríguez Lomelí")
+if st.button("Enviar"):
 
-# MOSTRAR CHAT
-for mensaje in st.session_state.chat:
+    try:
 
-    with st.chat_message(mensaje["role"]):
-        st.markdown(mensaje["content"])
+        response = client.messages.create(
+            model="claude-3-5-sonnet-latest",
+            max_tokens=100,
+            messages=[
+                {
+                    "role": "user",
+                    "content": pregunta
+                }
+            ]
+        )
 
-# INPUT
-if prompt := st.chat_input("Habla con MAYA..."):
+        st.success("FUNCIONA 🎉")
 
-    st.session_state.chat.append({
-        "role": "user",
-        "content": prompt
-    })
+        st.write(response.content[0].text)
 
-    with st.chat_message("user"):
-        st.markdown(prompt)
+    except Exception as e:
 
-    with st.spinner("MAYA pensando..."):
-
-        try:
-
-            respuesta = client.chat.completions.create(
-                model="gpt-4.1-mini",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": """
-                        Eres MAYA, la consultora estratégica de Fer.
-
-                        Personalidad:
-                        - Inteligente
-                        - Estratégica
-                        - Elegante
-                        - Directa
-                        - Visionaria
-
-                        Tu trabajo:
-                        - ayudar a Fer a crear negocios
-                        - mejorar ideas
-                        - detectar errores
-                        - proponer soluciones
-                        - estructurar planes
-
-                        Siempre llámala Fer.
-                        """
-                    },
-                    *st.session_state.chat
-                ]
-            )
-
-            texto = respuesta.choices[0].message.content
-
-            st.session_state.chat.append({
-                "role": "assistant",
-                "content": texto
-            })
-
-            with st.chat_message("assistant"):
-                st.markdown(texto)
-
-        except Exception as e:
-
-            st.error(str(e))
+        st.error(str(e))
