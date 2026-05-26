@@ -25,7 +25,6 @@ with st.sidebar:
     st.write("Director General: **Fer Rodríguez Lomeli**")
     st.write("---")
     st.write("### 🧭 Elige el Rol de MAYA:")
-    # El botón/selector que querías para cambiar de tema
     modo = st.radio(
         "¿Qué hacemos hoy, Fer?",
         ["☕ Café con Maya (Conóceme)", "🦈 Consultor Tiburón (Hacer Negocio)", "📊 Mi Progreso Semanal/Mensual"]
@@ -53,14 +52,13 @@ if modo == "☕ Café con Maya (Conóceme)":
         
         with st.spinner("Maya pensando..."):
             try:
-                cerebro = LLM(model="anthropic/claude-3-5-sonnet", temperature=0.5)
+                cerebro = LLM(model="anthropic/claude-3-5-sonnet-20241022", temperature=0.5)
                 instrucciones_personales = f"""
                 Eres MAYA, la asistente ejecutiva y mano derecha de María Fernanda Rodríguez Lomeli (a quien siempre, sin excepción, debes llamar 'Fer').
                 Estás en el modo 'Café con Maya'. Tu objetivo aquí es conocerla profundamente: sus valores, sus miedos, sus ideas y su estilo. 
                 Sé empática, motivadora, inteligente y muy analítica. No estructures negocios aquí a menos que ella te lo pida. 
                 Responde de forma conversacional, clara y mantén en tu memoria todo lo que te cuente sobre quién es ella.
                 """
-                # Llamar al modelo directamente para una conversación fluida
                 conversacion = cerebro.call(messages=[
                     {"role": "system", "content": instrucciones_personales},
                     {"role": "user", "content": prompt}
@@ -118,7 +116,7 @@ elif modo == "🦈 Consultor Tiburón (Hacer Negocio)":
         
         with st.spinner("Fabricando soluciones reales sin sesgos humanos... Por favor espera."):
             try:
-                cerebro_premium = LLM(model="anthropic/claude-3-5-sonnet", temperature=0.1)
+                cerebro_premium = LLM(model="anthropic/claude-3-5-sonnet-20241022", temperature=0.1)
                 herramienta_busqueda = TavilySearchTool()
 
                 tiburon = Agent(
@@ -150,8 +148,8 @@ elif modo == "🦈 Consultor Tiburón (Hacer Negocio)":
                 )
 
                 tarea_manual = Task(
-                    description='Toma la idea resuelta y crea un Manual Operativo detallado por tareas simples. Cada tarea debe responder obligatoriamente de forma explícita: - QUÉ se hace, - QUIÉN lo hace (empleado/herramienta), - CÓMO se hace (paso a paso sencillo), - CUÁNDO se hace, - CUÁNTO cuesta o genera, - DÓNDE se ejecuta. Asegura que Fer no intervenga en la operación diaria.',
-                    expected_output='Un Manual de Operación y Delegación impecable con instrucciones ultra específicas.',
+                    description='Toma la idea resuelta y crea un Manual Operativo detallado por tareas simples. Cada tarea debe responder obligatoriamente de forma explícita: - QUÉ se hace, - QUIÊN lo hace (empleado/herramienta), - CÓMO se hace (paso a paso sencillo), - CUÁNDO se hace, - CUÁNTO cuesta o genera, - DÓNDE se ejecuta. Asegura que Fer no intervenga en la operación diaria.',
+                    expected_output='Un Manual de Operación and Delegación impecable con instrucciones ultra específicas.',
                     agent=coo
                 )
 
@@ -180,3 +178,5 @@ elif modo == "📊 Mi Progreso Semanal/Mensual":
     st.title("📊 Control de Progreso y Rendición de Cuentas")
     st.subheader("Evaluación de metas de Fer Rodríguez Lomeli")
     st.write("Fer, para construir un imperio necesitas medir tus avances. Cuéntale a MAYA qué hiciste esta semana o este mes, cuánto dinero entró/salió o qué te detuvo, y ella evaluará críticamente tu velocidad de crecimiento.")
+    
+    tipo_reporte = st.selectbox("¿Qué periodo vamos a evaluar hoy, Fer?", ["Evaluación Semanal", "Evaluación Mensual"])
