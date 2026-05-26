@@ -8,22 +8,36 @@ st.set_page_config(page_title="MAIA", layout="wide")
 DATA_FILE = "maia_data.json"
 
 # ----------------------------
-# DATA
+# DATA SAFE LOAD (SIN ERRORES)
 # ----------------------------
 def load_data():
+    default = {
+        "chats": {},
+        "negocios": [],
+        "reflexion": [],
+        "documentos": []
+    }
+
     if not os.path.exists(DATA_FILE):
-        return {
-            "chats": {},
-            "negocios": [],
-            "reflexion": [],
-            "documentos": []
-        }
+        return default
+
     with open(DATA_FILE, "r") as f:
-        return json.load(f)
+        try:
+            data = json.load(f)
+        except:
+            return default
+
+    for key in default:
+        if key not in data:
+            data[key] = default[key]
+
+    return data
+
 
 def save_data(data):
     with open(DATA_FILE, "w") as f:
         json.dump(data, f, indent=2)
+
 
 data = load_data()
 
@@ -34,32 +48,37 @@ if "current_chat" not in st.session_state:
     st.session_state.current_chat = None
 
 # ----------------------------
-# MAIA CORE (básico por ahora)
+# MAIA CORE (BASE CEO)
 # ----------------------------
 def maia_response(text):
     if len(text.split()) < 6:
         return (
-            "Fer, necesito más contexto antes de responder como CEO.\n\n"
-            "Dime:\n"
-            "1. ¿Qué quieres lograr?\n"
-            "2. ¿Es negocio, escuela o personal?"
+            "Fer, necesito más contexto antes de analizar como CEO.\n\n"
+            "Respóndeme esto:\n"
+            "1. ¿Cuál es el objetivo?\n"
+            "2. ¿Es negocio, escuela o personal?\n"
         )
 
     return (
-        "Análisis MAIA (modo CEO):\n\n"
-        "- Estrategia: definir objetivo claro\n"
-        "- Marketing: cómo se comunica\n"
-        "- Finanzas: si genera costo o ingreso\n"
-        "- Operaciones: pasos de ejecución\n"
-        "- Ventas: cómo se convierte en resultado\n\n"
-        "Fer, dime si quieres que lo convierta en plan paso a paso."
+        "MAIA (Modo CEO):\n\n"
+        "Estrategia:\n"
+        "- Definir objetivo claro\n\n"
+        "Marketing:\n"
+        "- Cómo se comunica y a quién va dirigido\n\n"
+        "Finanzas:\n"
+        "- Costos, ingresos o valor generado\n\n"
+        "Operaciones:\n"
+        "- Pasos para ejecutarlo\n\n"
+        "Ventas:\n"
+        "- Cómo se convierte en resultado real\n\n"
+        "Fer, si quieres lo convierto en plan paso a paso."
     )
 
 # ----------------------------
-# CHAT MANAGEMENT
+# NEW CHAT
 # ----------------------------
 def new_chat():
-    chat_id = f"chat_{len(data['chats'])+1}"
+    chat_id = f"chat_{len(data['chats']) + 1}"
     data["chats"][chat_id] = {
         "title": "Nuevo chat",
         "messages": []
@@ -68,7 +87,7 @@ def new_chat():
     st.session_state.current_chat = chat_id
 
 # ----------------------------
-# SIDEBAR NAV
+# SIDEBAR
 # ----------------------------
 st.sidebar.title("MAIA")
 
@@ -82,7 +101,7 @@ st.sidebar.markdown("---")
 if st.sidebar.button("Nuevo chat"):
     new_chat()
 
-# lista chats
+# lista de chats
 for chat_id in data["chats"]:
     title = data["chats"][chat_id]["title"]
 
@@ -95,19 +114,19 @@ if not st.session_state.current_chat and data["chats"]:
 chat_id = st.session_state.current_chat
 
 # ----------------------------
-# CHAT UI
+# CHAT PAGE
 # ----------------------------
 if page == "Chat":
     st.title("MAIA - Chat con Fer")
 
     if chat_id is None:
-        st.info("Crea un nuevo chat para empezar.")
+        st.info("Crea un nuevo chat para comenzar.")
         st.stop()
 
     chat = data["chats"][chat_id]
 
-    # mensajes
-    for i, m in enumerate(chat["messages"]):
+    # mensajes estilo WhatsApp
+    for m in chat["messages"]:
         if m["role"] == "user":
             st.markdown(
                 f"""
