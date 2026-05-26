@@ -13,7 +13,8 @@ if st.button("Ver modelos"):
 
         modelos = client.models.list()
 
-        st.write(modelos)
+        for modelo in modelos.data:
+            st.write(modelo.id)
 
     except Exception as e:
 
