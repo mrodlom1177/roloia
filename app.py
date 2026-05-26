@@ -11,30 +11,24 @@ pregunta = st.text_input("Habla con MAYA")
 
 if st.button("Enviar"):
 
-    if pregunta:
+    try:
 
-        try:
+        respuesta = client.chat.completions.create(
+            model="gpt-4.1-mini",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "Eres MAYA, una asistente inteligente y motivadora. Siempre llamas a la usuaria Fer."
+                },
+                {
+                    "role": "user",
+                    "content": pregunta
+                }
+            ]
+        )
 
-            respuesta = client.chat.completions.create(
-                model="gpt-4.1-mini",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "Eres MAYA, una asistente inteligente, elegante y motivadora. Siempre llamas a la usuaria Fer."
-                    },
-                    {
-                        "role": "user",
-                        "content": pregunta
-                    }
-                ]
-            )
+        st.write(respuesta.choices[0].message.content)
 
-            texto = respuesta.choices[0].message.content
+    except Exception as e:
 
-            st.success("FUNCIONA 🎉")
-
-            st.write(texto)
-
-        except Exception as e:
-
-            st.error(str(e))
+        st.error(str(e))
