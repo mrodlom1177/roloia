@@ -1,4 +1,4 @@
-pip install --upgrade anthropic
-streamlit
-anthropic>=0.34.0
-python-dotenv
+streamlit==1.45.1
+anthropic==0.52.2
+python-dotenv==1.1.0
+rich==13.9.4
