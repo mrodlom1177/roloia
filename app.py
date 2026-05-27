@@ -2,9 +2,20 @@ import streamlit as st
 import json
 import os
 from datetime import datetime
+from openai import OpenAI
+from dotenv import load_dotenv
 
 # ---------------------------------------------------
-# CONFIG
+# LOAD ENV
+# ---------------------------------------------------
+load_dotenv()
+
+client = OpenAI(
+    api_key=os.getenv("OPENAI_API_KEY")
+)
+
+# ---------------------------------------------------
+# PAGE CONFIG
 # ---------------------------------------------------
 st.set_page_config(
     page_title="MAIA",
@@ -12,31 +23,32 @@ st.set_page_config(
 )
 
 # ---------------------------------------------------
-# STYLE
+# CUSTOM CSS
 # ---------------------------------------------------
 st.markdown("""
 <style>
 
-/* Fondo general */
-.main {
-    background-color: #0E1117;
-}
-
-/* Caja de texto */
-.stTextArea textarea {
-    height: 120px;
-    font-size: 16px;
-    border-radius: 12px;
+/* Fondo */
+.stApp {
+    background-color: #0f1117;
+    color: white;
 }
 
 /* Sidebar */
 section[data-testid="stSidebar"] {
-    background-color: #161B22;
+    background-color: #161b22;
+}
+
+/* Input */
+.stTextArea textarea {
+    font-size: 16px;
+    border-radius: 12px;
+    min-height: 120px;
 }
 
 /* Botones */
 .stButton button {
-    border-radius: 10px;
+    border-radius: 12px;
     height: 45px;
     font-size: 15px;
 }
@@ -54,6 +66,9 @@ section[data-testid="stSidebar"] {
 </style>
 """, unsafe_allow_html=True)
 
+# ---------------------------------------------------
+# DATA FILE
+# ---------------------------------------------------
 DATA_FILE = "maia_data.json"
 
 # ---------------------------------------------------
@@ -83,15 +98,17 @@ def load_data():
 
     return data
 
-
 # ---------------------------------------------------
 # SAVE DATA
 # ---------------------------------------------------
 def save_data(data):
+
     with open(DATA_FILE, "w") as f:
         json.dump(data, f, indent=2)
 
-
+# ---------------------------------------------------
+# INIT DATA
+# ---------------------------------------------------
 data = load_data()
 
 # ---------------------------------------------------
@@ -101,131 +118,99 @@ if "current_chat" not in st.session_state:
     st.session_state.current_chat = None
 
 # ---------------------------------------------------
-# MAIA AI LOGIC
+# MAIA SYSTEM PROMPT
 # ---------------------------------------------------
-def maia_response(text):
+SYSTEM_PROMPT = """
+Tu nombre es MAIA.
 
-    text_lower = text.lower()
+Eres la consultora estratégica y mentora de Fer.
 
-    # ---------------------------------------------------
-    # GREETINGS
-    # ---------------------------------------------------
-    greetings = [
-        "hola",
-        "hello",
-        "hi",
-        "buenas",
-        "cómo estás",
-        "como estas"
+Información importante:
+- Fer tiene 16 años
+- Tiene perfil de liderazgo
+- Le interesa emprendimiento, innovación, impacto social, negocios y tecnología
+- Quiere crear proyectos grandes y estratégicos
+- Quiere estructura, disciplina y dirección
+
+Tu personalidad:
+- Inteligente
+- Estratégica
+- Natural
+- Humana
+- Analítica
+- Ambiciosa
+- Clara
+- Nunca robótica
+
+REGLAS IMPORTANTES:
+- Siempre llamas a la usuaria "Fer"
+- Nunca usas emojis
+- Nunca respondes como bot automático
+- Nunca repites respuestas genéricas
+- Analizas profundamente lo que Fer escribe
+- Recuerdas el contexto de la conversación
+- Solo haces preguntas cuando realmente son necesarias
+- Hablas como una mezcla entre:
+    - consultora CEO
+    - mentora estratégica
+    - analista de negocios
+    - directora de proyectos
+
+Sabes sobre:
+- negocios
+- startups
+- marketing
+- branding
+- ventas
+- IA
+- productividad
+- finanzas
+- gestión de proyectos
+- hábitos
+- liderazgo
+- crecimiento personal
+
+Tus respuestas:
+- deben sentirse naturales
+- deben reaccionar específicamente a lo que Fer escribió
+- deben aportar ideas reales
+- deben pensar en grande pero aterrizado
+"""
+
+# ---------------------------------------------------
+# MAIA RESPONSE
+# ---------------------------------------------------
+def maia_response(chat_messages):
+
+    messages = [
+        {
+            "role": "system",
+            "content": SYSTEM_PROMPT
+        }
     ]
 
-    if any(greet in text_lower for greet in greetings):
-        return (
-            "Hola Fer.\n\n"
-            "Estoy lista para ayudarte con negocios, estrategia, "
-            "proyectos, organización, reflexión personal y crecimiento.\n\n"
-            "Cuéntame qué tienes en mente."
-        )
+    # AGREGAR HISTORIAL
+    for msg in chat_messages:
 
-    # ---------------------------------------------------
-    # PRESENTATION / IDENTITY
-    # ---------------------------------------------------
-    if "soy" in text_lower or "me llamo" in text_lower:
+        if msg["role"] == "user":
+            messages.append({
+                "role": "user",
+                "content": msg["text"]
+            })
 
-        return (
-            "Gracias por compartir eso conmigo, Fer.\n\n"
-            "Puedo notar varias fortalezas importantes en ti:\n\n"
-            "- liderazgo\n"
-            "- pensamiento estratégico\n"
-            "- interés en impacto social\n"
-            "- iniciativa\n"
-            "- visión a futuro\n\n"
-            "También noto que tienes ambición y muchas ideas, "
-            "pero necesitas estructura, enfoque y sistemas "
-            "para convertir ese potencial en resultados sólidos.\n\n"
-            "Voy a ayudarte a:\n"
-            "- organizar ideas\n"
-            "- crear planes\n"
-            "- mejorar disciplina\n"
-            "- desarrollar proyectos\n"
-            "- pensar de forma estratégica\n"
-            "- priorizar correctamente"
-        )
+        else:
+            messages.append({
+                "role": "assistant",
+                "content": msg["text"]
+            })
 
-    # ---------------------------------------------------
-    # BUSINESS / PROJECT ANALYSIS
-    # ---------------------------------------------------
-    keywords = [
-        "negocio",
-        "empresa",
-        "startup",
-        "marketing",
-        "ventas",
-        "finanzas",
-        "dinero",
-        "proyecto",
-        "ia",
-        "app",
-        "marca"
-    ]
-
-    if any(word in text_lower for word in keywords):
-
-        # SI EL CONTEXTO ES MUY POCO
-        if len(text.split()) < 10:
-
-            return (
-                "Fer, necesito un poco más de contexto "
-                "para darte un análisis estratégico útil.\n\n"
-                "Explícame:\n"
-                "- situación actual\n"
-                "- objetivo\n"
-                "- qué quieres lograr"
-            )
-
-        return (
-            "MAIA — Análisis Estratégico\n\n"
-
-            "ESTRATEGIA:\n"
-            "- definir objetivo claro\n"
-            "- validar oportunidad\n\n"
-
-            "MARKETING:\n"
-            "- comunicación\n"
-            "- audiencia objetivo\n"
-            "- posicionamiento\n\n"
-
-            "FINANZAS:\n"
-            "- costos\n"
-            "- recursos necesarios\n"
-            "- rentabilidad potencial\n\n"
-
-            "OPERACIONES:\n"
-            "- pasos de ejecución\n"
-            "- estructura\n"
-            "- organización\n\n"
-
-            "CRECIMIENTO:\n"
-            "- riesgos\n"
-            "- oportunidades\n"
-            "- escalabilidad\n\n"
-
-            "AUTOEVALUACIÓN MAIA:\n"
-            "- claridad: 8/10\n"
-            "- profundidad: 7/10\n"
-            "- contexto suficiente: parcial\n\n"
-
-            "Fer, puedo convertir esto "
-            "en un plan de acción de 7, 30 o 90 días."
-        )
-
-    # ---------------------------------------------------
-    # GENERAL RESPONSE
-    # ---------------------------------------------------
-    return (
-        "Entiendo, Fer.\n\n"
-        "Cuéntame un poco más para ayudarte mejor."
+    response = client.chat.completions.create(
+        model="gpt-4.1-mini",
+        messages=messages,
+        temperature=0.9
     )
+
+    return response.choices[0].message.content
 
 # ---------------------------------------------------
 # CREATE CHAT
@@ -266,7 +251,7 @@ if st.sidebar.button("Nuevo chat"):
 
 st.sidebar.markdown("### Historial")
 
-# HISTORIAL
+# CHATS
 for chat_id in data["chats"]:
 
     title = data["chats"][chat_id]["title"]
@@ -274,7 +259,7 @@ for chat_id in data["chats"]:
     if st.sidebar.button(title, key=chat_id):
         st.session_state.current_chat = chat_id
 
-# AUTO SELECT
+# AUTOSELECT
 if not st.session_state.current_chat and data["chats"]:
     st.session_state.current_chat = list(data["chats"].keys())[-1]
 
@@ -288,13 +273,15 @@ if page == "Chat":
     st.title("MAIA")
 
     if chat_id is None:
-        st.info("Crea un nuevo chat para comenzar.")
+
+        st.info("Crea un nuevo chat.")
+
         st.stop()
 
     chat = data["chats"][chat_id]
 
     # ---------------------------------------------------
-    # CHAT MESSAGES
+    # MENSAJES
     # ---------------------------------------------------
     for m in chat["messages"]:
 
@@ -304,14 +291,19 @@ if page == "Chat":
             st.markdown(
                 f"""
                 <div style="
-                    text-align:right;
-                    background:#2563EB;
-                    color:white;
-                    padding:12px;
-                    border-radius:12px;
-                    margin:8px;
+                    display:flex;
+                    justify-content:flex-end;
+                    margin-bottom:10px;
                 ">
-                {m['text']}
+                    <div style="
+                        background:#2563eb;
+                        color:white;
+                        padding:12px;
+                        border-radius:15px;
+                        max-width:70%;
+                    ">
+                        {m['text']}
+                    </div>
                 </div>
                 """,
                 unsafe_allow_html=True
@@ -323,15 +315,20 @@ if page == "Chat":
             st.markdown(
                 f"""
                 <div style="
-                    text-align:left;
-                    background:#1F2937;
-                    color:white;
-                    padding:12px;
-                    border-radius:12px;
-                    margin:8px;
+                    display:flex;
+                    justify-content:flex-start;
+                    margin-bottom:10px;
                 ">
-                <b>MAIA</b><br><br>
-                {m['text']}
+                    <div style="
+                        background:#1f2937;
+                        color:white;
+                        padding:12px;
+                        border-radius:15px;
+                        max-width:70%;
+                    ">
+                        <b>MAIA</b><br><br>
+                        {m['text']}
+                    </div>
                 </div>
                 """,
                 unsafe_allow_html=True
@@ -346,7 +343,7 @@ if page == "Chat":
         "Escribe a MAIA"
     )
 
-    col1, col2 = st.columns(2)
+    col1, col2 = st.columns([1,1])
 
     with col1:
         send = st.button("Enviar")
@@ -366,18 +363,43 @@ if page == "Chat":
         st.rerun()
 
     # ---------------------------------------------------
-    # SEND MESSAGE
+    # SEND
     # ---------------------------------------------------
     if send and user_input:
 
-        # TITLE AUTO
+        # AUTO TITLE
         if chat["title"] == "Nuevo chat":
 
-            words = user_input.split()
+            title_prompt = f"""
+            Crea un título corto y estratégico
+            para esta conversación:
 
-            chat["title"] = " ".join(words[:4])
+            "{user_input}"
 
-        # SAVE USER MESSAGE
+            Máximo 5 palabras.
+            """
+
+            try:
+
+                title_response = client.chat.completions.create(
+                    model="gpt-4.1-mini",
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": title_prompt
+                        }
+                    ],
+                    temperature=0.7
+                )
+
+                generated_title = title_response.choices[0].message.content
+
+                chat["title"] = generated_title.strip().replace('"', '')
+
+            except:
+                chat["title"] = user_input[:25]
+
+        # SAVE USER
         chat["messages"].append({
             "role": "user",
             "text": user_input,
@@ -385,9 +407,9 @@ if page == "Chat":
         })
 
         # MAIA RESPONSE
-        response = maia_response(user_input)
+        response = maia_response(chat["messages"])
 
-        # SAVE MAIA MESSAGE
+        # SAVE MAIA
         chat["messages"].append({
             "role": "maia",
             "text": response,
@@ -441,10 +463,10 @@ elif page == "Negocios":
         st.markdown(
             f"""
             <div style="
-                background:#1F2937;
-                padding:10px;
-                border-radius:10px;
-                margin:5px;
+                background:#1f2937;
+                padding:12px;
+                border-radius:12px;
+                margin-bottom:10px;
                 color:white;
             ">
             <b>{n['idea']}</b><br>
@@ -496,10 +518,10 @@ elif page == "Reflexión":
         st.markdown(
             f"""
             <div style="
-                background:#1F2937;
-                padding:10px;
-                border-radius:10px;
-                margin:5px;
+                background:#1f2937;
+                padding:12px;
+                border-radius:12px;
+                margin-bottom:10px;
                 color:white;
             ">
             <b>{r['tipo']}</b><br><br>
@@ -557,10 +579,10 @@ elif page == "Documentos":
         st.markdown(
             f"""
             <div style="
-                background:#1F2937;
-                padding:10px;
-                border-radius:10px;
-                margin:5px;
+                background:#1f2937;
+                padding:12px;
+                border-radius:12px;
+                margin-bottom:10px;
                 color:white;
             ">
             <b>{d['titulo']}</b><br>
